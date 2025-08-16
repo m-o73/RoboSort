@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TM Camera Detection</title>
+    <link rel="stylesheet" href="/style.css" />
+    <!-- TensorFlow.js & Teachable Machine (image) -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.7.4/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+  </head>
+  <body>
+    <header class="container">
+      <h1>Teachable Machine — Live Camera Detection</h1>
+      <p class="muted">Loads your TM image model in the browser and shows per-class probabilities in real time.</p>
+    </header>
+
+    <main class="container grid">
+      <section class="card">
+        <div class="controls">
+          <label for="cameraSelect">Camera</label>
+          <select id="cameraSelect"></select>
+          <button id="startBtn">Start Camera</button>
+          <button id="stopBtn" disabled>Stop</button>
+        </div>
+
+        <div class="video-wrap">
+          <video id="webcam" autoplay playsinline muted></video>
+          <canvas id="overlay"></canvas>
+          <div id="statusBadge" class="badge">idle</div>
+        </div>
+        <div class="footnote muted">
+          Tip: On desktop, use Chrome/Edge/Firefox. On iOS, use Safari (HTTPS required). On Android, use Chrome.
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Model</h2>
+        <div class="model-meta">
+          <div><strong>Name:</strong> <span id="modelName">—</span></div>
+          <div><strong>Classes:</strong> <span id="classCount">—</span></div>
+          <div><strong>Input size:</strong> <span id="imageSize">—</span> px</div>
+        </div>
+
+        <div class="threshold">
+          <label for="thresholdInput">Confidence threshold</label>
+          <input id="thresholdInput" type="range" min="0" max="1" step="0.01" value="0.5" />
+          <span id="thresholdValue">0.50</span>
+        </div>
+
+        <div id="predictions" class="predictions"></div>
+      </section>
+    </main>
+
+    <footer class="container muted footnote" style="text-align: center;">
+      <p>
+        This demo uses a Teachable Machine <em>image classification</em> model. &copy; Fablab.
+      </p>
+    </footer>
+
+    <script src="/script.js"></script>
+  </body>
+</html>
