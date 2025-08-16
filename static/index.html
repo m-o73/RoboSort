@@ -22,6 +22,11 @@
           <select id="cameraSelect"></select>
           <button id="startBtn">Start Camera</button>
           <button id="stopBtn" disabled>Stop</button>
+                <div class="file-input">
+         <label for="imageUpload">Upload Image:</label>
+         <input type="file" id="imageUpload" accept="image/*">
+        </div>
+    <img id="uploadedImage" style="max-width: 400px; display:none; margin-top:10px;" />
         </div>
 
         <div class="video-wrap">
@@ -40,12 +45,6 @@
           <div><strong>Name:</strong> <span id="modelName">—</span></div>
           <div><strong>Classes:</strong> <span id="classCount">—</span></div>
           <div><strong>Input size:</strong> <span id="imageSize">—</span> px</div>
-        </div>
-
-        <div class="threshold">
-          <label for="thresholdInput">Confidence threshold</label>
-          <input id="thresholdInput" type="range" min="0" max="1" step="0.01" value="0.5" />
-          <span id="thresholdValue">0.50</span>
         </div>
 
         <div id="predictions" class="predictions"></div>

@@ -1,4 +1,5 @@
 let model, webcamStream, maxPredictions = 0, labels = [], imageSize = 224;
+
 const webcamEl = document.getElementById("webcam");
 const overlay = document.getElementById("overlay");
 const ctx = overlay.getContext("2d");
@@ -7,27 +8,39 @@ const stopBtn = document.getElementById("stopBtn");
 const cameraSelect = document.getElementById("cameraSelect");
 const predsEl = document.getElementById("predictions");
 const statusBadge = document.getElementById("statusBadge");
-const thresholdInput = document.getElementById("thresholdInput");
-const thresholdValue = document.getElementById("thresholdValue");
 const modelNameEl = document.getElementById("modelName");
 const classCountEl = document.getElementById("classCount");
 const imageSizeEl = document.getElementById("imageSize");
 
+// NEW: upload support
+const imageUpload = document.getElementById("imageUpload");
+const uploadedImage = document.getElementById("uploadedImage");
+
+// Offscreen square input canvas that matches the model input size
+const inputCanvas = document.createElement("canvas");
+const inputCtx = inputCanvas.getContext("2d");
+
 async function loadModel() {
-  setStatus("loading model…","warn");
-  // Model files are served from /model/
+  setStatus("loading model…", "warn");
   const modelURL = "/model/model.json";
   const metadataURL = "/model/metadata.json";
   model = await tmImage.load(modelURL, metadataURL);
   maxPredictions = model.getTotalClasses();
+
   const meta = await (await fetch(metadataURL)).json();
   labels = meta.labels || [];
   imageSize = meta.imageSize || 224;
+
+  // configure offscreen canvas to model's expected size
+  inputCanvas.width = imageSize;
+  inputCanvas.height = imageSize;
+
   modelNameEl.textContent = meta.modelName || "—";
   classCountEl.textContent = String(maxPredictions);
   imageSizeEl.textContent = String(imageSize);
+
   renderPredictionRows(labels);
-  setStatus("model ready","ok");
+  setStatus("model ready", "ok");
 }
 
 function renderPredictionRows(labels) {
@@ -51,40 +64,48 @@ async function populateCameraList() {
   videos.forEach((d, i) => {
     const opt = document.createElement("option");
     opt.value = d.deviceId;
-    opt.textContent = d.label || `Camera ${i+1}`;
+    opt.textContent = d.label || `Camera ${i + 1}`;
     cameraSelect.appendChild(opt);
   });
 }
 
 async function startCamera() {
-  setStatus("requesting camera…","warn");
+  setStatus("requesting camera…", "warn");
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    setStatus("Camera API not supported","err");
+    setStatus("Camera API not supported", "err");
     alert("Your browser does not support getUserMedia.");
     return;
   }
 
-  // Stop any existing stream first
   stopCamera();
 
   const constraints = {
     audio: false,
-    video: { deviceId: cameraSelect.value ? { exact: cameraSelect.value } : undefined, width: { ideal: 1280 }, height: { ideal: 720 } }
+    video: {
+      deviceId: cameraSelect.value ? { exact: cameraSelect.value } : undefined,
+      width: { ideal: 1280 },
+      height: { ideal: 720 },
+      facingMode: "environment"
+    }
   };
+
   try {
     webcamStream = await navigator.mediaDevices.getUserMedia(constraints);
     webcamEl.srcObject = webcamStream;
     await webcamEl.play();
-    // Resize overlay to match video
+
+    // Match overlay to actual video size
     overlay.width = webcamEl.videoWidth;
     overlay.height = webcamEl.videoHeight;
-    setStatus("camera ready","ok");
+
+    setStatus("camera ready", "ok");
     startBtn.disabled = true;
     stopBtn.disabled = false;
+
     requestAnimationFrame(loop);
   } catch (e) {
     console.error(e);
-    setStatus("camera error","err");
+    setStatus("camera error", "err");
     alert("Could not access the camera. Check permissions or use HTTPS/localhost.");
   }
 }
@@ -96,38 +117,74 @@ function stopCamera() {
   }
   startBtn.disabled = false;
   stopBtn.disabled = true;
-  setStatus("idle","");
+  setStatus("idle", "");
 }
 
 async function loop() {
   if (!webcamStream) return;
-  await predict();
+  await predictFromWebcam();
   requestAnimationFrame(loop);
 }
 
-async function predict() {
+// --- PREPROCESSING: square center-crop & resize to model imageSize ---
+function drawSquareCenterCropToInputCanvas(mediaEl) {
+  const srcW = mediaEl.videoWidth || mediaEl.naturalWidth || mediaEl.width;
+  const srcH = mediaEl.videoHeight || mediaEl.naturalHeight || mediaEl.height;
+  if (!srcW || !srcH) return;
+
+  const size = Math.min(srcW, srcH); // square crop size
+  const sx = (srcW - size) / 2;
+  const sy = (srcH - size) / 2;
+
+  inputCtx.clearRect(0, 0, imageSize, imageSize);
+  inputCtx.drawImage(
+    mediaEl,
+    sx, sy, size, size,       // source (center-cropped square)
+    0, 0, imageSize, imageSize // dest (model's input size)
+  );
+  return inputCanvas;
+}
+
+// Webcam prediction (no threshold)
+async function predictFromWebcam() {
   if (!model) return;
 
-  // Draw a subtle overlay grid (cosmetic)
-  ctx.clearRect(0,0,overlay.width, overlay.height);
+  // Cosmetic grid overlay
+  ctx.clearRect(0, 0, overlay.width, overlay.height);
   ctx.globalAlpha = 0.12;
   const step = 80;
   for (let x = 0; x < overlay.width; x += step) {
-    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,overlay.height); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, overlay.height); ctx.stroke();
   }
   for (let y = 0; y < overlay.height; y += step) {
-    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(overlay.width,y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(overlay.width, y); ctx.stroke();
   }
   ctx.globalAlpha = 1;
 
-  // Run classification on current frame
-  const preds = await model.predict(webcamEl, false);
-  const threshold = parseFloat(thresholdInput.value);
+  const input = drawSquareCenterCropToInputCanvas(webcamEl);
+  if (!input) return;
 
-  // Sort descending
-  preds.sort((a,b) => b.probability - a.probability);
+  const preds = await model.predict(input, false);
+  preds.sort((a, b) => b.probability - a.probability);
+  updateUI(preds);
+}
 
-  // Update UI rows
+// File upload → prediction (no threshold)
+async function runImagePrediction(imgEl) {
+  if (!model) {
+    setStatus("Model not loaded", "err");
+    return;
+  }
+  const input = drawSquareCenterCropToInputCanvas(imgEl);
+  if (!input) return;
+
+  const preds = await model.predict(input, false);
+  preds.sort((a, b) => b.probability - a.probability);
+  updateUI(preds);
+}
+
+// Update prediction bars & numbers
+function updateUI(preds) {
   const rows = predsEl.querySelectorAll(".pred-row");
   preds.forEach((p, idx) => {
     const row = rows[idx];
@@ -137,8 +194,7 @@ async function predict() {
     const percent = Math.round(p.probability * 100);
     bar.style.width = percent + "%";
     score.textContent = (p.probability).toFixed(2);
-    // Dim rows under threshold
-    row.style.opacity = p.probability >= threshold ? "1" : "0.4";
+    row.style.opacity = "1"; // always visible (no threshold)
   });
 }
 
@@ -147,15 +203,25 @@ function setStatus(text, kind) {
   statusBadge.className = "badge " + (kind || "");
 }
 
-thresholdInput.addEventListener("input", () => {
-  thresholdValue.textContent = parseFloat(thresholdInput.value).toFixed(2);
-});
+// Upload handlers
+if (imageUpload) {
+  imageUpload.addEventListener("change", (ev) => {
+    const file = ev.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      uploadedImage.src = e.target.result;
+      uploadedImage.style.display = "block";
+      uploadedImage.onload = () => runImagePrediction(uploadedImage);
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 startBtn.addEventListener("click", startCamera);
 stopBtn.addEventListener("click", stopCamera);
 
-(async function init(){
+(async function init() {
   await loadModel();
   await populateCameraList();
-  thresholdValue.textContent = parseFloat(thresholdInput.value).toFixed(2);
 })();
