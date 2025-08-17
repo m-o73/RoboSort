@@ -145,7 +145,7 @@ function drawSquareCenterCropToInputCanvas(mediaEl) {
   return inputCanvas;
 }
 
-// Webcam prediction (no threshold)
+// Webcam prediction 
 async function predictFromWebcam() {
   if (!model) return;
 
@@ -169,7 +169,7 @@ async function predictFromWebcam() {
   updateUI(preds);
 }
 
-// File upload → prediction (no threshold)
+// File upload → prediction
 async function runImagePrediction(imgEl) {
   if (!model) {
     setStatus("Model not loaded", "err");
@@ -194,7 +194,7 @@ function updateUI(preds) {
     const percent = Math.round(p.probability * 100);
     bar.style.width = percent + "%";
     score.textContent = (p.probability).toFixed(2);
-    row.style.opacity = "1"; // always visible (no threshold)
+    row.style.opacity = "1";
   });
 }
 
@@ -202,6 +202,47 @@ function setStatus(text, kind) {
   statusBadge.textContent = text;
   statusBadge.className = "badge " + (kind || "");
 }
+imageUpload.addEventListener("change", handleImageUpload);
+
+function handleImageUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    uploadedImage.src = e.target.result;
+    uploadedImage.style.display = "block";
+    uploadedImage.onload = () => runImagePrediction(uploadedImage);
+  };
+  reader.readAsDataURL(file);
+}
+
+async function runImagePrediction(img) {
+  if (!model) {
+    setStatus("Model not loaded", "err");
+    return;
+  }
+
+  const preds = await model.predict(img, false);
+
+  // Sort descending
+  preds.sort((a,b) => b.probability - a.probability);
+
+  // Update UI rows
+  const rows = predsEl.querySelectorAll(".pred-row");
+  preds.forEach((p, idx) => {
+    const row = rows[idx];
+    if (!row) return;
+    const bar = row.querySelector(".bar > span");
+    const score = row.querySelector(".score");
+    const percent = Math.round(p.probability * 100);
+    bar.style.width = percent + "%";
+    score.textContent = (p.probability).toFixed(2);
+    row.style.opacity = "1";
+    removeImageBtn.style.display = "inline-block";
+  });
+}
+
 
 // Upload handlers
 if (imageUpload) {
@@ -217,6 +258,27 @@ if (imageUpload) {
     reader.readAsDataURL(file);
   });
 }
+const removeImageBtn = document.getElementById("removeImageBtn");
+
+removeImageBtn.addEventListener("click", () => {
+  uploadedImage.src = "";
+  uploadedImage.style.display = "none";
+  removeImageBtn.style.display = "none";
+  
+  // Clear prediction bars
+  const rows = predsEl.querySelectorAll(".pred-row");
+  rows.forEach((row) => {
+    const bar = row.querySelector(".bar > span");
+    const score = row.querySelector(".score");
+    bar.style.width = "0%";
+    score.textContent = "0.00";
+    row.style.opacity = "0.5";
+  });
+
+  // Reset file input
+  imageUpload.value = "";
+});
+
 
 startBtn.addEventListener("click", startCamera);
 stopBtn.addEventListener("click", stopCamera);
