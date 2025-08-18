@@ -11,7 +11,7 @@
   </head>
   <body>
     <header class="container">
-      <h1>Teachable Machine — Live Camera Detection</h1>
+      <h1>Teachable Machine — <span class="highlight">Live Camera Detection</span></h1>
       <p class="muted">Loads your TM image model in the browser and shows per-class probabilities in real time.</p>
     </header>
 
@@ -22,16 +22,17 @@
           <select id="cameraSelect"></select>
           <button id="startBtn">Start Camera</button>
           <button id="stopBtn" disabled>Stop</button>
-                <div class="file-input">
-         <label for="imageUpload">Upload Image:</label>
-         <input type="file" id="imageUpload" accept="image/*">
-        </div>
-    <img id="uploadedImage" style="max-width: 400px; display:none; margin-top:10px;" />
-    <button id="removeImageBtn" style="display:none; margin-top:10px;">Remove Image</button>
 
+          <div class="file-input">
+            <label for="imageUpload">Upload Image</label>
+            <input type="file" id="imageUpload" accept="image/*">
+          </div>
+
+          <img id="uploadedImage" style="max-width: 400px; display:none; margin-top:10px;" />
+          <button id="removeImageBtn" style="display:none; margin-top:10px;">Remove Image</button>
         </div>
 
-        <div class="video-wrap">
+        <div class="video-wrap" id="videoContainer">
           <video id="webcam" autoplay playsinline muted></video>
           <canvas id="overlay"></canvas>
           <div id="statusBadge" class="badge">idle</div>
@@ -51,6 +52,16 @@
 
         <div id="predictions" class="predictions"></div>
       </section>
+      <footer class="container muted footnote" style="text-align: center;">
+  <p>
+    <a href="quiz.html">
+      <button style="margin-top:10px; text-align: center; padding:10px 20px; border-radius:8px; cursor:pointer; background:#0e1630; color:white; border:none;">
+        🎮 Go to Quiz
+      </button>
+    </a>
+  </p>
+</footer>
+
     </main>
 
     <footer class="container muted footnote" style="text-align: center;">

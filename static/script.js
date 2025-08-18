@@ -289,8 +289,8 @@ function removeUploadedImage() {
     const bar = row.querySelector(".bar > span");
     const score = row.querySelector(".score");
     bar.style.width = "0%";
-    score.textContent = "0.00";
-    row.style.opacity = "0.5";
+    score.textContent = "%0";
+    row.style.opacity = "%5";
   });
 }
 

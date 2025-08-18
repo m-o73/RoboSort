@@ -1,28 +1,70 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
+
+	"github.com/gorilla/mux"
 )
 
 func main() {
-	// Serve files in ./static at /
-	fs := http.FileServer(http.Dir("./static"))
-	http.Handle("/", fs)
+	r := mux.NewRouter()
 
 	// Health check
-	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
+	r.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("ok"))
-	})
+	}).Methods("GET")
 
+	// API to list images in /static/images
+	r.HandleFunc("/api/images", func(w http.ResponseWriter, r *http.Request) {
+		files, err := os.ReadDir("./static/images") // Correct folder path
+		if err != nil {
+			http.Error(w, "Failed to read images", http.StatusInternalServerError)
+			return
+		}
+		var images []map[string]string
+		for _, f := range files {
+			if !f.IsDir() {
+				ext := filepath.Ext(f.Name())
+				if ext == ".jpg" || ext == ".jpeg" || ext == ".png" {
+					// Manually specify correct labels here
+					var correctLabel string
+					switch f.Name() {
+					case "Blazer.png":
+						correctLabel = "Blazer"
+					case "Damaged.png":
+						correctLabel = "Damaged"
+					case "Jacket.png":
+						correctLabel = "Jacket"
+					case "Pants.png":
+						correctLabel = "Pants"
+					case "Shirt.png":
+						correctLabel = "Shirt"
+					case "T-shirt.png":
+						correctLabel = "T-shirt"
+					}
+
+					images = append(images, map[string]string{
+						"image": "images/" + f.Name(),
+						"label": correctLabel,
+					})
+				}
+			}
+		}
+		json.NewEncoder(w).Encode(images)
+	}).Methods("GET")
+
+	// Serve static files (so /quiz.html works)
+	fs := http.FileServer(http.Dir("./static"))
+	r.PathPrefix("/").Handler(fs)
+
+	// Start the server
 	addr := ":" + envOrDefault("PORT", "8080")
-	log.Printf("Server listening on http://localhost%v ...", addr)
-	log.Printf("Note: Camera access requires HTTPS in browsers. For local dev, use http://localhost%v", addr)
-	if err := http.ListenAndServe(addr, nil); err != nil {
-		log.Fatal(err)
-	}
+	log.Printf("Server running at http://localhost%v", addr)
+	log.Fatal(http.ListenAndServe(addr, r))
 }
 
 func envOrDefault(key, def string) string {

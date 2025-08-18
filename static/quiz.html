@@ -1,0 +1,47 @@
+<!-- quiz.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kahoot Quiz</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest"></script>
+  <style>
+    #quizSection { text-align: center; max-width: 600px; margin: auto; }
+    #quizOptions { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+    #quizOptions button {
+      background: #0e1630; border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px; padding: 12px; font-size: 16px;
+      color: white; cursor: pointer; transition: background 0.2s;
+    }
+    #quizOptions button:hover { background: #1a2754; }
+    #quizOptions button:disabled { opacity: 0.7; }
+    #quizFeedback { margin-top: 12px; font-weight: bold; font-size: 18px; }
+    .game-info {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 15px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <section class="card" id="quizSection">
+    <h2>Quiz Game</h2>
+    <div class="game-info">
+      <div id="roundDisplay"></div>
+      <div id="scoreDisplay"></div>
+    </div>
+    <div id="quizImageWrap">
+      <img id="quizImage" style="max-width:300px; display:none;" />
+    </div>
+    <div id="quizOptions"></div>
+    <p id="quizFeedback"></p>
+    <button id="nextQuestionBtn" style="display:none;">Next Question</button>
+  </section>
+
+  <script src="quiz.js"></script>
+</body>
+</html>
