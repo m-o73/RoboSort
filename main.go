@@ -33,18 +33,20 @@ func main() {
 					// Manually specify correct labels here
 					var correctLabel string
 					switch f.Name() {
-					case "Blazer.png":
-						correctLabel = "Blazer"
-					case "Damaged.png":
-						correctLabel = "Damaged"
-					case "Jacket.png":
-						correctLabel = "Jacket"
-					case "Pants.png":
-						correctLabel = "Pants"
-					case "Shirt.png":
-						correctLabel = "Shirt"
-					case "T-shirt.png":
-						correctLabel = "T-shirt"
+					case "damageddd.jpg":
+						correctLabel = "not usable"
+					case "damageddd2.png":
+						correctLabel = "not usable"
+					case "damageddd3.png":
+						correctLabel = "not usable"
+					case "jackettt.jpeg":
+						correctLabel = "usable"
+					case "jackettt2.jpeg":
+						correctLabel = "usable"
+					case "panttts.jpg":
+						correctLabel = "usable"
+					case "shirttt.jpg":
+						correctLabel = "usable"
 					}
 
 					images = append(images, map[string]string{
